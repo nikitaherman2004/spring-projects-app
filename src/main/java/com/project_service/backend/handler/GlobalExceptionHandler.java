@@ -1,4 +1,4 @@
-package com.project_service.backend;
+package com.project_service.backend.handler;
 
 import com.project_service.backend.dto.ErrorDto;
 import com.project_service.backend.exception.ApplicationException;
