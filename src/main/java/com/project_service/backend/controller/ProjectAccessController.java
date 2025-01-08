@@ -17,7 +17,7 @@ public class ProjectAccessController {
         projectAccessService.joinToProject(projectAccessDto);
     }
 
-    @DeleteMapping("/leave/projectId/{projectId}/userId/{participantId}")
+    @DeleteMapping("/leave/{projectId}/{participantId}")
     public void leaveFromProject(@PathVariable Long projectId,
                                  @PathVariable String participantId
     ) {

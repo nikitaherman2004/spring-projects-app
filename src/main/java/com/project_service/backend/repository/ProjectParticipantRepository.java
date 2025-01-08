@@ -9,5 +9,7 @@ import java.util.Optional;
 @Repository
 public interface ProjectParticipantRepository extends JpaRepository<ProjectParticipant, Long> {
 
+    Boolean existsByParticipantIdAndProjectId(String participantId, Long projectId);
+
     Optional<ProjectParticipant> findByParticipantIdAndProjectId(String participantId, Long project_id);
 }

@@ -9,6 +9,8 @@ import lombok.Setter;
 @NoArgsConstructor
 public class ProjectPasswordDto {
 
+    private String userId;
+
     private Long projectId;
 
     private String newPassword;

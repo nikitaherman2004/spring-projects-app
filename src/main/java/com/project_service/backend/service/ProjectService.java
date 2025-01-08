@@ -7,6 +7,7 @@ import com.project_service.backend.entity.Project;
 import com.project_service.backend.exception.ApplicationException;
 import com.project_service.backend.mapper.ProjectMapper;
 import com.project_service.backend.repository.ProjectRepository;
+import com.project_service.backend.util.OwnershipRequestValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -26,8 +27,9 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
 
-    private final PasswordEncoderService passwordEncoderService;
+    private final SecurityAuthService securityAuthService;
 
+    private final OwnershipRequestValidator requestValidator;
 
     public boolean existsProjectByKeyword(String keyword) {
         return projectRepository.existsByCredentialsKeyword(keyword);
@@ -78,6 +80,7 @@ public class ProjectService {
                 "Запрос на обновление пароля для проекта с идентификатором {}",
                 projectPasswordDto.getProjectId()
         );
+        requestValidator.validateRequestOwnership(projectPasswordDto.getUserId());
 
         Project project = getProjectById(projectPasswordDto.getProjectId());
 
@@ -143,6 +146,7 @@ public class ProjectService {
                 "Запрос на создание нового проекта с названием {}, идентификатор пользователя - {}",
                 createDto.getName(), createDto.getUserId()
         );
+        requestValidator.validateRequestOwnership(createDto.getUserId());
 
         Project entity = projectMapper.toEntity(createDto);
 
@@ -168,7 +172,7 @@ public class ProjectService {
     }
 
     private void setNewPassword(Credentials credentials, String password) {
-        String encodedPassword = passwordEncoderService.encodePassword(password);
+        String encodedPassword = securityAuthService.encodePassword(password);
 
         credentials.setPassword(encodedPassword);
     }

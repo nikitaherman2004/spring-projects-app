@@ -6,6 +6,7 @@ import com.project_service.backend.entity.Project;
 import com.project_service.backend.entity.ProjectParticipant;
 import com.project_service.backend.exception.ApplicationException;
 import com.project_service.backend.repository.ProjectParticipantRepository;
+import com.project_service.backend.util.OwnershipRequestValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -20,10 +21,11 @@ public class ProjectAccessService {
 
     private final ProjectService projectService;
 
-    private final PasswordEncoderService passwordEncoderService;
+    private final SecurityAuthService securityAuthService;
+
+    private final OwnershipRequestValidator requestValidator;
 
     private final ProjectParticipantRepository projectParticipantRepository;
-
 
     public void saveProjectParticipant(ProjectParticipant projectParticipant) {
         projectParticipantRepository.save(projectParticipant);
@@ -31,6 +33,10 @@ public class ProjectAccessService {
 
     public void deleteProjectParticipant(ProjectParticipant projectParticipant) {
         projectParticipantRepository.delete(projectParticipant);
+    }
+
+    public Boolean existsByParticipantIdAndProjectId(String participantId, Long projectId) {
+        return projectParticipantRepository.existsByParticipantIdAndProjectId(participantId, projectId);
     }
 
     public ProjectParticipant findByParticipantIdAndProjectId(String participantId, Long projectId) {
@@ -61,8 +67,16 @@ public class ProjectAccessService {
                         "Идентификатор инициатора - {}",
                 projectAccessDto.getKeyword(), projectAccessDto.getUserId()
         );
+        requestValidator.validateRequestOwnership(projectAccessDto.getUserId());
 
         Project project = projectService.getProjectByCredentialsKeyword(projectAccessDto.getKeyword());
+
+        if (existsByParticipantIdAndProjectId(projectAccessDto.getUserId(), project.getId())) {
+            throw new ApplicationException(
+                    String.format("Вы уже являетесь участником проекта %s", projectAccessDto.getKeyword()),
+                    HttpStatus.BAD_REQUEST
+            );
+        }
 
         if (project.getIsPrivate()) {
             checkPasswordOrThrowException(project, projectAccessDto);
@@ -80,6 +94,7 @@ public class ProjectAccessService {
                 "Запрос на прекращение участия в проекте с идентификатором проекта {}. Идентификатор инициатора {}",
                 projectId, participantId
         );
+        requestValidator.validateRequestOwnership(participantId);
 
         ProjectParticipant projectParticipant = findByParticipantIdAndProjectId(participantId, projectId);
 
@@ -89,7 +104,7 @@ public class ProjectAccessService {
     private void checkPasswordOrThrowException(Project project, ProjectAccessDto projectAccessDto) {
         Credentials credentials = project.getCredentials();
 
-        if (!passwordEncoderService.matchesPassword(projectAccessDto.getPassword(), credentials.getPassword())) {
+        if (!securityAuthService.matchesPassword(projectAccessDto.getPassword(), credentials.getPassword())) {
             throw new ApplicationException(
                     String.format(
                             "Не удалось присоединиться к проекту. Вы ввели неправильный пароль для " +
